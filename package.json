@@ -1,0 +1,54 @@
+{
+  "name": "tdt4501-fordypningsprosjekt",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "npm run init-db && next dev",
+    "build": "prisma generate && next build",
+    "start": "npm run init-db && next start",
+    "lint": "next lint",
+    "prisma-generate": "prisma generate",
+    "prisma-migrate-dev": "prisma migrate dev",
+    "prisma-db-seed": "prisma db seed",
+    "init-db": "npm run prisma-migrate-dev && npm run prisma-db-seed"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "5.15.0",
+    "@radix-ui/themes": "3.0.5",
+    "amqp-connection-manager": "4.1.14",
+    "amqplib": "0.10.4",
+    "dockerode": "4.0.2",
+    "minio": "8.0.0",
+    "next": "14.2.4",
+    "octokit": "4.0.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-icons": "5.2.1",
+    "yauzl": "3.1.3"
+  },
+  "devDependencies": {
+    "@faker-js/faker": "8.4.1",
+    "@total-typescript/ts-reset": "0.5.1",
+    "@trivago/prettier-plugin-sort-imports": "4.3.0",
+    "@types/amqplib": "0.10.5",
+    "@types/dockerode": "3.3.29",
+    "@types/node": "20.14.2",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "@types/yauzl": "2.10.3",
+    "autoprefixer": "10.4.19",
+    "eslint": "8.57.0",
+    "eslint-config-next": "14.2.4",
+    "postcss": "8.4.38",
+    "prisma": "5.15.0",
+    "tailwindcss": "3.4.4",
+    "tsx": "4.15.5",
+    "typescript": "5.4.5"
+  }
+}

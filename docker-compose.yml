@@ -1,0 +1,110 @@
+x-db-environment: &dbEnvironment
+  POSTGRES_USER: db_user
+  POSTGRES_PASSWORD: db_password
+  POSTGRES_DB: fordypningsprosjekt
+  DATABASE_URL: postgres://db_user:db_password@db:5432/fordypningsprosjekt
+
+x-storage-environment: &storageEnvironment
+  MINIO_ROOT_USER: storage_user
+  MINIO_ROOT_PASSWORD: storage_password
+  BUCKET_NAME_GRADERS: graders
+  BUCKET_NAME_SUBMISSIONS: submissions
+
+x-message-queue-environment: &messageQueueEnvironment
+  RABBITMQ_DEFAULT_USER: message_queue_user
+  RABBITMQ_DEFAULT_PASS: message_queue_password
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment: *dbEnvironment
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db:/var/lib/postgresql/data
+
+  storage:
+    image: minio/minio
+    restart: always
+    depends_on:
+      - message_queue
+    environment: *storageEnvironment
+    ports:
+      - 9000:9000
+      - 9001:9001
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - storage:/data
+    command: server --console-address ":9001" /data
+
+  init_storage:
+    image: minio/mc
+    depends_on:
+      storage:
+          condition: service_healthy
+      message_queue:
+          condition: service_healthy
+    environment: 
+      <<: [*storageEnvironment, *messageQueueEnvironment]
+    entrypoint: ./init.sh
+    volumes:
+      - ./services/storage/init.sh:/init.sh
+
+  app:
+    image: node:18-alpine
+    depends_on:
+      - db
+      - message_queue
+      - storage
+    environment:
+      <<: [*dbEnvironment, *storageEnvironment]
+    ports:
+      - 3000:3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: >
+      /bin/sh -c "
+      apk update;
+      apk add curl;
+      npm install;
+      npm run dev;
+      "
+
+  message_queue:
+    image: rabbitmq:3.12-management-alpine
+    # minio/mc doesn't support underscores in hostnames
+    hostname: message-queue
+    ports:
+      - 5672:5672
+      - 15672:15672
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - ./services/message_queue/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf
+      - ./services/message_queue/definitions.json:/etc/rabbitmq/definitions.json
+      - ./services/message_queue/enabled_plugins:/etc/rabbitmq/enabled_plugins
+      - message_queue:/var/lib/rabbitmq
+
+volumes:
+  db: {}
+  storage: {}
+  message_queue: {}

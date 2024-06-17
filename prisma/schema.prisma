@@ -1,0 +1,106 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+model User {
+    id    String    @id
+    name  String
+    email String
+
+    courses Course[]
+}
+
+model StudentUser {
+    id    String    @id 
+    name  String
+    email String
+
+    courses              Course[]
+    assignmentSubmission AssignmentSubmission[]
+}
+
+model Course {
+    id   Int    @id @default(autoincrement())
+    name String
+    code String
+
+    creator   User @relation(fields: [creatorId], references: [id])
+    creatorId String
+
+    students    StudentUser[]
+    assignments Assignment[]
+}
+
+model Assignment {
+    id            Int      @id @default(autoincrement())
+    name          String
+    releaseDate   DateTime
+    dueDate       DateTime
+    graderZipFile String
+
+    course   Course @relation(fields: [courseId], references: [id])
+    courseId Int
+
+    assignmentTests      AssignmentTest[]
+    assignmentSubmission AssignmentSubmission[]
+}
+
+model AssignmentTest {
+    id        Int    @id @default(autoincrement())
+    name      String
+    maxPoints Int
+
+    assignment   Assignment @relation(fields: [assignmentId], references: [id])
+    assignmentId Int
+
+    assignmentTestConditions AssignmentTestCondition[]
+}
+
+model AssignmentTestCondition {
+    id                  Int    @id @default(autoincrement())
+    name                String
+    points              Int
+    expectedOutputRegEx String
+
+    assignmentTest   AssignmentTest @relation(fields: [assignmentTestId], references: [id])
+    assignmentTestId Int
+
+    assignmentSubmissionTestResults AssignmentSubmissionTestResult[]
+}
+
+model AssignmentSubmission {
+    id                Int               @id @default(autoincrement())
+    status            SUBMISSION_STATUS
+    createdAt         DateTime          @default(now())
+    submissionZipFile String
+
+    assignment   Assignment @relation(fields: [assignmentId], references: [id])
+    assignmentId Int
+
+    studentUser   StudentUser @relation(fields: [studentUserId], references: [id])
+    studentUserId String
+
+    testResults AssignmentSubmissionTestResult[]
+}
+
+model AssignmentSubmissionTestResult {
+    id     Int    @id @default(autoincrement())
+    output String
+
+    assignmentSubmission   AssignmentSubmission @relation(fields: [assignmentSubmissionId], references: [id])
+    assignmentSubmissionId Int
+
+    assignmentGradingCondition   AssignmentTestCondition @relation(fields: [assignmentGradingConditionId], references: [id])
+    assignmentGradingConditionId Int
+}
+
+enum SUBMISSION_STATUS {
+    PENDING
+    RUNNING
+    FINISHED
+}
